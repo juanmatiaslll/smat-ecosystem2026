@@ -5,59 +5,56 @@ import '../models/estacion.dart';
 import 'auth_service.dart';
 
 class ApiService {
-
-  // Chrome/Linux
   final String baseUrl = "http://localhost:8000";
 
-  // =========================================
-  // GET ESTACIONES
-  // =========================================
+  // ==============================
+  // GET ESTACIONES (FIXED)
+  // ==============================
   Future<List<Estacion>> fetchEstaciones() async {
 
+    final token = await AuthService().getToken();
     final url = '$baseUrl/estaciones/';
+
     print("URL: $url");
 
     try {
-
-      final response = await http
-          .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 5));
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null)
+            'Authorization': 'Bearer $token',
+        },
+      ).timeout(const Duration(seconds: 5));
 
       print("STATUS: ${response.statusCode}");
       print("BODY: ${response.body}");
 
+      // 🔥 FIX IMPORTANTE: manejo 401
+      if (response.statusCode == 401) {
+        await AuthService().logout();
+        throw Exception("Sesión expirada");
+      }
+
       if (response.statusCode == 200) {
-
-        List<dynamic> jsonResponse =
-            json.decode(response.body);
-
-        print("PARSED: $jsonResponse");
+        List<dynamic> jsonResponse = json.decode(response.body);
 
         return jsonResponse
             .map((data) => Estacion.fromJson(data))
             .toList();
-
       } else {
-
-        throw Exception(
-          'Error del servidor: ${response.statusCode}',
-        );
+        throw Exception('Error servidor: ${response.statusCode}');
       }
 
     } catch (e) {
-
       print("ERROR FETCH: $e");
-
-      // Manejo de errores robusto
-      throw Exception(
-        'No se pudo conectar con SMAT. ¿Está el servidor activo?',
-      );
+      throw Exception('No se pudo conectar con SMAT');
     }
   }
 
-  // =========================================
-  // POST CREAR ESTACION
-  // =========================================
+  // ==============================
+  // POST ESTACION (FIXED)
+  // ==============================
   Future<bool> crearEstacion(
     String nombre,
     String ubicacion,
@@ -66,18 +63,14 @@ class ApiService {
     final token = await AuthService().getToken();
     final url = '$baseUrl/estaciones/';
 
-    print("TOKEN: $token");
-
     try {
-
       final response = await http.post(
         Uri.parse(url),
-
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          if (token != null)
+            'Authorization': 'Bearer $token',
         },
-
         body: jsonEncode({
           'nombre': nombre,
           'ubicacion': ubicacion,
@@ -85,18 +78,17 @@ class ApiService {
       ).timeout(const Duration(seconds: 5));
 
       print("STATUS POST: ${response.statusCode}");
-      print("BODY POST: ${response.body}");
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
+      // 🔥 FIX 401 también aquí
+      if (response.statusCode == 401) {
+        await AuthService().logout();
         return false;
       }
 
+      return response.statusCode == 200;
+
     } catch (e) {
-
       print("ERROR POST: $e");
-
       return false;
     }
   }

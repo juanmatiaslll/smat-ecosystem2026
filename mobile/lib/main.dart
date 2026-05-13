@@ -4,145 +4,145 @@ import 'services/api_service.dart';
 import 'services/auth_service.dart';
 
 import 'models/estacion.dart';
-
 import 'screens/login_screen.dart';
 
-void main() => runApp(const SMATApp());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const SMATApp());
+}
 
 class SMATApp extends StatelessWidget {
   const SMATApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-
-    return MaterialApp(
-
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-
       title: 'SMAT Mobile',
+      home: SplashScreen(),
+    );
+  }
+}
 
-      // =====================================
-      // VERIFICACIÓN DE TOKEN
-      // =====================================
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
 
-      home: FutureBuilder<String?>(
-        future: AuthService().getToken(),
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
 
-        builder: (context, snapshot) {
+class _SplashScreenState extends State<SplashScreen> {
 
-          // Loading inicial
-          if (
-              snapshot.connectionState ==
-              ConnectionState.waiting
-          ) {
+  @override
+  void initState() {
+    super.initState();
+    checkLogin();
+  }
 
-            return const Scaffold(
-              body: Center(
-                child:
-                    CircularProgressIndicator(),
-              ),
-            );
-          }
+  Future<void> checkLogin() async {
+    try {
+      final token = await AuthService().getToken();
 
-          // Si existe token -> HOME
-          if (
-              snapshot.hasData &&
-              snapshot.data != null
-          ) {
+      if (!mounted) return;
 
-            return const HomePage();
-          }
+      if (token != null && token.isNotEmpty) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      }
+    } catch (e) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
+  }
 
-          // Si no existe token -> LOGIN
-          return const LoginScreen();
-        },
-      ),
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
     );
   }
 }
 
 class HomePage extends StatefulWidget {
-
   const HomePage({super.key});
 
   @override
-  State<HomePage> createState() =>
-      _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState
-    extends State<HomePage> {
+class _HomePageState extends State<HomePage> {
 
-  late Future<List<Estacion>>
-      futureEstaciones;
+  late Future<List<Estacion>> futureEstaciones;
+  String? errorMsg;
+  bool isLoading = false;
 
   @override
   void initState() {
-
     super.initState();
-
-    futureEstaciones =
-        ApiService().fetchEstaciones();
+    cargarDatos();
   }
 
-  // =====================================
-  // REFRESH
-  // =====================================
+  void cargarDatos() {
+    errorMsg = null;
+    futureEstaciones = ApiService().fetchEstaciones();
+  }
 
   Future<void> refrescar() async {
-
-     print("REFRESH EJECUTADO");
-
     setState(() {
-
-      futureEstaciones =
-          ApiService()
-              .fetchEstaciones();
+      isLoading = true;
+      errorMsg = null;
+      cargarDatos();
     });
 
-    await futureEstaciones;
+    try {
+      final data = await futureEstaciones;
+
+      setState(() {
+        isLoading = false;
+        if (data.isEmpty) {
+          errorMsg = "No hay datos disponibles";
+        }
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMsg = "Servidor no disponible. Intenta más tarde.";
+        futureEstaciones = Future.value([]); // limpia datos viejos
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
 
-      // ===================================
+      // =========================
       // APPBAR
-      // ===================================
-
+      // =========================
       appBar: AppBar(
-
-        title: const Text(
-          'SMAT - Monitoreo Móvil',
-        ),
-
+        title: const Text('SMAT - Monitoreo Móvil'),
         actions: [
-
-          // LOGOUT
           IconButton(
-
-            icon: const Icon(
-              Icons.logout,
-            ),
-
+            icon: const Icon(Icons.logout),
             onPressed: () async {
-
-              await AuthService()
-                  .logout();
+              await AuthService().logout();
 
               if (!mounted) return;
 
               Navigator.pushAndRemoveUntil(
-
                 context,
-
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const LoginScreen(),
+                  builder: (_) => const LoginScreen(),
                 ),
-
                 (route) => false,
               );
             },
@@ -150,138 +150,92 @@ class _HomePageState
         ],
       ),
 
-      // ===================================
+      // =========================
       // BODY
-      // ===================================
-
-      body:
-          FutureBuilder<List<Estacion>>(
-
-        future: futureEstaciones,
-
-        builder: (
-          context,
-          snapshot,
-        ) {
-
-          // ===============================
-          // LOADING
-          // ===============================
-
-          if (
-              snapshot.connectionState ==
-              ConnectionState.waiting
-          ) {
-
-            return const Center(
-              child:
-                  CircularProgressIndicator(),
-            );
-          }
-
-          // ===============================
-          // ERROR
-          // ===============================
-
-          if (snapshot.hasError) {
-
-            return const Center(
-
-              child: Padding(
-
-                padding: EdgeInsets.all(20),
-
-                child: Text(
-
-                  "No se pudo conectar con el servidor. Verifica tu conexión o intenta más tarde.",
-                  style: TextStyle(
-
-                    color: Colors.red,
-                    fontSize: 16,
+      // =========================
+      body: errorMsg != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.wifi_off, size: 60, color: Colors.red),
+                  const SizedBox(height: 10),
+                  Text(
+                    errorMsg!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.red),
                   ),
-
-                  textAlign:
-                      TextAlign.center,
-                ),
+                  const SizedBox(height: 10),
+                  ElevatedButton(
+                    onPressed: refrescar,
+                    child: const Text("Reintentar"),
+                  )
+                ],
               ),
-            );
-          }
+            )
+          : FutureBuilder<List<Estacion>>(
+              future: futureEstaciones,
+              builder: (context, snapshot) {
 
-          // ===============================
-          // LISTA VACÍA
-          // ===============================
+                if (snapshot.connectionState == ConnectionState.waiting || isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(),
+                  );
+                }
 
-          if (
-              !snapshot.hasData ||
-              snapshot.data!.isEmpty
-          ) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error, color: Colors.red, size: 60),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "No se pudo conectar con el servidor",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: refrescar,
+                          child: const Text("Reintentar"),
+                        )
+                      ],
+                    ),
+                  );
+                }
 
-            return const Center(
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(
+                    child: Text("No hay estaciones registradas"),
+                  );
+                }
 
-              child: Text(
-                "No hay estaciones registradas",
-              ),
-            );
-          }
+                return RefreshIndicator(
+                  onRefresh: refrescar,
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, index) {
+                      final est = snapshot.data![index];
 
-          // ===============================
-          // PULL TO REFRESH
-          // ===============================
-
-          return RefreshIndicator(
-
-            onRefresh: refrescar,
-
-            child: ListView.builder(
-
-              // IMPORTANTE:
-              // permite refresh aunque
-              // haya pocos elementos
-
-              physics:
-                  const AlwaysScrollableScrollPhysics(),
-
-              itemCount:
-                  snapshot.data!.length,
-
-              itemBuilder: (
-                context,
-                index,
-              ) {
-
-                final est =
-                    snapshot.data![index];
-
-                return ListTile(
-
-                  leading: const Icon(
-                    Icons.satellite_alt,
+                      return ListTile(
+                        leading: const Icon(Icons.satellite_alt),
+                        title: Text(est.nombre),
+                        subtitle: Text(est.ubicacion),
+                      );
+                    },
                   ),
-
-                  title:
-                      Text(est.nombre),
-
-                  subtitle:
-                      Text(est.ubicacion),
                 );
               },
             ),
-          );
-        },
-      ),
 
-      // ===================================
-      // BOTÓN REFRESH MANUAL
-      // ===================================
-
-      floatingActionButton:
-          FloatingActionButton(
-
+      // =========================
+      // FLOATING BUTTON
+      // =========================
+      floatingActionButton: FloatingActionButton(
         onPressed: refrescar,
-
-        child: const Icon(
-          Icons.refresh,
-        ),
+        child: const Icon(Icons.refresh),
       ),
     );
   }

@@ -1,142 +1,51 @@
 # SMAT - Sistema de Monitoreo de Alerta Temprana
 
-API desarrollada con **FastAPI** para la gestión y monitoreo de desastres naturales mediante sensores en tiempo real.
-Permite registrar estaciones, capturar lecturas y analizar niveles de riesgo.
+Aplicación móvil desarrollada en Flutter con backend en FastAPI para el monitoreo de estaciones ambientales en tiempo real.
 
----
+## 🚀 Funcionalidades
+- Login con JWT y persistencia de sesión
+- Consumo de API REST (FastAPI + SQLite)
+- Gestión de estaciones (listar y crear)
+- Pull-to-refresh para actualización de datos
+- Manejo de errores (servidor caído / sin conexión)
+- Sesión persistente con SharedPreferences
 
-## Características
+## 🧱 Tecnologías
+Flutter, FastAPI, SQLite, JWT (Bearer Token), Uvicorn
 
-* Registro de estaciones de monitoreo
-* Captura de lecturas de sensores
-* Validación de integridad de datos (estaciones existentes)
-* Autenticación con JWT
-* Estadísticas globales
-* Reportes históricos por estación
-* Configuración CORS habilitada
+## ⚙️ Backend (ejecución)
+python -m venv venv  
+source venv/bin/activate (Linux/Mac)  
+venv\Scripts\activate (Windows)  
 
----
+pip install fastapi uvicorn sqlalchemy python-multipart  
 
-## Tecnologías utilizadas
+uvicorn main:app --reload --host 0.0.0.0 --port 8000  
 
-* Python
-* FastAPI
-* SQLAlchemy
-* JWT
-* Uvicorn
+## 📱 Frontend (Flutter)
+flutter pub get  
+flutter run  
 
----
+## 🌐 Configuración de red
+Si se ejecuta en otra PC o celular cambiar:
+final String baseUrl = "http://IP_DEL_SERVIDOR:8000";
 
-## Estructura del proyecto
+Ejemplo:
+http://192.168.1.50:8000
 
-```
-.
-├── main.py
-├── models.py
-├── schemas.py
-├── crud.py
-├── database.py
-└── auth.py
-```
+## 🔐 Autenticación
+Endpoint: /token  
+Tipo: JWT Bearer Token  
 
----
+Header:
+Authorization: Bearer TOKEN  
 
-## Instalación y ejecución
+## 📡 Endpoints
+GET /estaciones/ → listar estaciones  
+POST /estaciones/ → crear estación  
 
-1. Crear entorno virtual:
+## 🔄 Resiliencia
+Si el servidor está apagado la app muestra un mensaje de error, no se bloquea y permite reintentar la conexión.
 
-```bash
-python -m venv venv
-source venv/bin/activate
-```
-
-2. Instalar dependencias:
-
-```bash
-pip install fastapi uvicorn sqlalchemy
-```
-
-3. Ejecutar el servidor:
-
-```bash
-uvicorn main:app --reload
-```
-
----
-
-## Autenticación
-
-### Obtener token
-
-**POST /token**
-
-Respuesta:
-
-```json
-{
-  "access_token": "TOKEN",
-  "token_type": "bearer"
-}
-```
-
-Usar en headers:
-
-```
-Authorization: Bearer TOKEN
-```
-
----
-
-## Endpoints principales
-
-### 🔹 Seguridad
-
-* `POST /token` → Genera token JWT
-
-### 🔹 Gestión de Infraestructura
-
-* `POST /estaciones/` → Crear estación
-
-### 🔹 Telemetría de Sensores
-
-* `POST /lecturas/` → Registrar lectura
-
-  * ✔ Verifica que la estación exista
-
-### 🔹 Auditoría
-
-* `GET /estaciones/stats` → Estadísticas globales
-
-### 🔹 Reportes
-
-* `GET /estaciones/{id}/historial` → Historial de lecturas
-
----
-
-## Ejemplo de uso
-
-```bash
-curl -X POST http://127.0.0.1:8000/token
-```
-
----
-
-## Documentación interactiva
-
-Una vez ejecutado el servidor, puedes acceder a:
-
-* Swagger UI:
-   http://127.0.0.1:8000/docs
-
----
-
-## Autor
-
-* Jose Pacara
-* Universidad Nacional Mayor de San Marcos (UNMSM)
-
----
-
-## Licencia
-
-UNMSM 2.0
+## 👨‍💻 Autor
+Jose Pacara - UNMSM Ciencia de la Computación
