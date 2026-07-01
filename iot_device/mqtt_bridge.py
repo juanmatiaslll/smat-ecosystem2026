@@ -3,15 +3,24 @@ import requests
 import json
 import sys
 import time
+import os
 
 
 MQTT_BROKER = "broker.hivemq.com"
 MQTT_PORT = 1883
 MQTT_TOPIC = "fisi/smat/estaciones/+/lecturas"
 
-API_URL = "http://localhost:8000/lecturas/"
 
-JWT_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTc4MTEwNTgzOH0.WI3_aeuW0Sj9HkirCEO2blLCvo2QTZ3MQXkzBYnemhQ"
+API_URL = os.environ.get(
+    "API_URL",
+    "http://localhost:8000/lecturas/"
+)
+
+
+JWT_TOKEN = os.environ.get(
+    "JWT_TOKEN",
+    ""
+)
 
 
 ultimo_valor_por_estacion = {}

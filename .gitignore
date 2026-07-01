@@ -6,6 +6,11 @@ backend/venv/
 __pycache__/
 *.pyc
 
+# Entornos virtuales
+venv/
+.venv/
+iot_device/venv/
+
 # =========================
 # FLUTTER
 # =========================
@@ -19,3 +24,5 @@ mobile/.packages
 # =========================
 
 *.deb
+
+
